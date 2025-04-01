@@ -9,10 +9,8 @@ import { SearchBar } from "@/components/search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchResults } from "@/components/search-results";
 import { type SearchResult, mockSearchResult } from "@/lib/search";
-import { generateStaticParams } from "./staticParams";
-
-// Remove DarkModeToggle import
-// import { DarkModeToggle } from "@/components/DarkModeToggle";
+// Remove this import as it's causing the build error
+// import { generateStaticParams } from "./staticParams";
 
 export const dynamic = 'force-static';
 
