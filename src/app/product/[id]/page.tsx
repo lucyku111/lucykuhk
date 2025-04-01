@@ -1,25 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { ChevronLeft, Heart, Share, ShoppingCart, Star } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard } from "@/components/product-card";
-import { type Product, mockProducts } from "@/lib/search";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { type Product, mockProducts } from "@/lib/products";
 
-export function generateStaticParams() {
-  // Generate pages for each product in the mock data
-  return Array.from(Array(6).keys()).map(id => ({
-    id: String(id + 1)
-  }));
-}
+// Remove any import of generateStaticParams if it exists
+// import { generateStaticParams } from "./staticParams";
 
 export default function ProductPage() {
   const params = useParams();
