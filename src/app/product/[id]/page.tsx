@@ -15,8 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard } from "@/components/product-card";
 import { type Product, mockProducts } from "@/lib/products";
 
-// Remove any import of generateStaticParams if it exists
-// import { generateStaticParams } from "./staticParams";
+// IMPORTANT: Do not import or export generateStaticParams here
 
 export default function ProductPage() {
   const params = useParams();
