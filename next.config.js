@@ -1,12 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
-  // Remove output: 'export' for Netlify deployment
-  // output: 'export',
-  // distDir: 'out',
   eslint: {
-    // we use biome for linting
     ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
   },
   images: {
     unoptimized: true,
@@ -16,31 +14,6 @@ const nextConfig = {
       "ext.same-assets.com",
       "ugc.same-assets.com",
     ],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "source.unsplash.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "ext.same-assets.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "ugc.same-assets.com",
-        pathname: "/**",
-      },
-    ],
-  },
-  typescript: {
-    ignoreBuildErrors: true,
   },
 };
 

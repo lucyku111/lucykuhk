@@ -15,9 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard } from "@/components/product-card";
 import { type Product, mockProducts } from "@/lib/products";
 
-// IMPORTANT: Do not import or export generateStaticParams here
-
-export default function ProductPage() {
+// Completely client-side component
+const ProductPage = () => {
   const params = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -288,4 +287,6 @@ export default function ProductPage() {
       <Footer />
     </div>
   );
-}
+};
+
+export default ProductPage;
