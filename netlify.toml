@@ -11,14 +11,3 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-# The following section is causing the error because it's likely defined twice
-# Remove the duplicate [images] section or merge them
-
-[build]
-  command = "npm run build"
-  publish = "out"
-
-# Keep only one [images] section
-[images]
-  remote_images = ["https://source.unsplash.com/.*", "https://images.unsplash.com/.*", "https://ext.same-assets.com/.*", "https://ugc.same-assets.com/.*"]
