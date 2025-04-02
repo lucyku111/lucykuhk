@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Remove output: 'export' for Netlify deployment
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -14,7 +15,8 @@ const nextConfig = {
       "ext.same-assets.com",
       "ugc.same-assets.com",
     ],
-  },
+  },  // Added comma here
+  // Removed experimental.esmExternals as it's not supported by Turbopack
 };
 
 module.exports = nextConfig;
