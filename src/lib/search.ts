@@ -60,34 +60,7 @@ export const mockSearchResult: SearchResult = {
 3. **Amazon** - $929 (128GB), $1029 (256GB), $1229 (512GB), $1429 (1TB)
    - Free Prime shipping
    - Various colors available
-   - Different payment options
-
-4. **Walmart** - $939 (128GB), $1039 (256GB), $1239 (512GB), $1439 (1TB)
-   - Walmart+ members get 5% cashback
-   - Extended warranty available
-   - Free 2-day shipping on orders over $35
-
-5. **Target** - $949 (128GB), $1049 (256GB), $1249 (512GB), $1449 (1TB)
-   - 5% off with RedCard
-   - Free shipping on orders over $35
-   - Extended returns with RedCard
-
-6. **T-Mobile** - $999 (128GB), $1099 (256GB), $1299 (512GB), $1499 (1TB)
-   - Up to $800 off with trade-in and new line
-   - Monthly payment plans available
-   - 5G service included
-
-7. **Verizon** - $999 (128GB), $1099 (256GB), $1299 (512GB), $1499 (1TB)
-   - Up to $1000 off with eligible trade-in
-   - Contract and unlocked options
-   - Free shipping
-
-8. **AT&T** - $999 (128GB), $1099 (256GB), $1299 (512GB), $1499 (1TB)
-   - Up to $700 off with eligible trade-in
-   - 36-month payment plans available
-   - Free same-day delivery in select areas
-
-Best deal: Amazon has the lowest price at $929 for the 128GB model, saving you $70 compared to retail price.`
+   - Different payment options`
 };
 
 // Mock data for development and testing
