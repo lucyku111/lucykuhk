@@ -15,11 +15,9 @@ const nextConfig = {
       "ugc.same-assets.com",
     ],
   },
-  // Add this to force static export which doesn't use generateStaticParams
-  output: 'export',
-  // Disable server components for the build
+  // Remove output: 'export' completely
   experimental: {
-    serverComponentsExternalPackages: [],
+    serverComponentsExternalPackages: ['@netlify/plugin-nextjs']
   }
 };
 
