@@ -15,8 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard } from "@/components/product-card";
 import { type Product, mockProducts } from "@/lib/products";
 
-// Completely client-side component
-const ProductPage = () => {
+function ProductPageContent() {
   const params = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +29,6 @@ const ProductPage = () => {
       setError(null);
 
       try {
-        // In a real app, we would fetch from the API
-        // For now, use mock data
         const productId = params.id as string;
         const foundProduct = mockProducts.find((p) => p.id === productId);
 
@@ -40,12 +37,9 @@ const ProductPage = () => {
           return;
         }
 
-        // Simulate network delay
         await new Promise((resolve) => setTimeout(resolve, 500));
-
         setProduct(foundProduct);
 
-        // Find related products (products in the same category)
         const related = mockProducts
           .filter(
             (p) =>
@@ -287,6 +281,8 @@ const ProductPage = () => {
       <Footer />
     </div>
   );
-};
+}
 
-export default ProductPage;
+export default function ProductPage() {
+  return <ProductPageContent />;
+}
