@@ -1,23 +1,42 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { ChevronLeft, Heart, Share, ShoppingCart, Star } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ProductCard } from "@/components/product-card";
-import { type Product, mockProducts } from "@/lib/products";
 
-import { ProductClientPage } from "@/components/product-client-page";
-
-// This is a server component that doesn't use "use client"
 export default function ProductPage() {
-  return <ProductClientPage />;
+  const params = useParams();
+  
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <main className="flex-1">
+        <div className="container py-32 text-center">
+          <Link
+            href="/"
+            className="mb-6 inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Back to home
+          </Link>
+          
+          <h1 className="mb-6 text-2xl font-bold">
+            API Integration Page
+          </h1>
+          <p className="mb-8 text-muted-foreground">
+            This page will integrate with an API to display data based on user input.
+          </p>
+          <Button asChild>
+            <Link href="/">Return Home</Link>
+          </Button>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
 }

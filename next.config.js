@@ -15,9 +15,9 @@ const nextConfig = {
       "ugc.same-assets.com",
     ],
   },
-  // Remove output: 'export' completely
+  // Simplified experimental section
   experimental: {
-    serverComponentsExternalPackages: ['@netlify/plugin-nextjs']
+    serverExternalPackages: ['@netlify/plugin-nextjs']
   }
 };
 
