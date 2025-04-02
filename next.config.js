@@ -14,6 +14,12 @@ const nextConfig = {
       "ext.same-assets.com",
       "ugc.same-assets.com",
     ],
+  },
+  // Add this to force static export which doesn't use generateStaticParams
+  output: 'export',
+  // Disable server components for the build
+  experimental: {
+    serverComponentsExternalPackages: [],
   }
 };
 
