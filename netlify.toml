@@ -12,6 +12,7 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+
 # The following section is causing the error because it's likely defined twice
 # Remove the duplicate [images] section or merge them
 
