@@ -9,7 +9,7 @@ import { SearchBar } from "@/components/search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchResults } from "@/components/search-results";
 import { type SearchResult, mockSearchResult } from "@/lib/search";
-// Remove this import as it's causing the build error
+// Remove the commented import statement
 // import { generateStaticParams } from "./staticParams";
 
 export const dynamic = 'force-static';
