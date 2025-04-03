@@ -3,15 +3,92 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExternalLink, ShoppingCart, Tag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface ProductResult {
+  Product: string;
+  Price: string;
+  Store: string;
+  URL: string;
+}
 
 interface SearchResultsProps {
-  content: string;
+  content: string | ProductResult[];
   query: string;
 }
 
 export function SearchResults({ content, query }: SearchResultsProps) {
+  // Check if content is an array of product results
+  const isProductArray = Array.isArray(content) && 
+    content.length > 0 && 
+    typeof content[0] === 'object' && 
+    'Product' in content[0];
+
+  // Render product results in a card layout
+  if (isProductArray) {
+    const products = content as ProductResult[];
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Results for "{query}"</h2>
+          <Badge variant="outline" className="px-3 py-1">
+            {products.length} results
+          </Badge>
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {products.map((product, index) => (
+            <Card key={index} className="overflow-hidden transition-all hover:shadow-lg">
+              <CardHeader className="bg-muted/50 pb-3">
+                <CardTitle className="line-clamp-2 text-base font-medium">
+                  {product.Product}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xl font-bold text-primary">{product.Price}</span>
+                  </div>
+                  <Badge variant="secondary">{product.Store}</Badge>
+                </div>
+                
+                <Button 
+                  className="w-full gap-2" 
+                  asChild
+                >
+                  <a href={product.URL} target="_blank" rel="noopener noreferrer">
+                    <ShoppingCart className="h-4 w-4" />
+                    <span>View Deal</span>
+                    <ExternalLink className="ml-1 h-3 w-3" />
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // If not a product array, use the existing text formatter
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Results for "{query}"</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {typeof content === 'string' ? formatContent(content) : (
+          <pre className="whitespace-pre-wrap">{JSON.stringify(content, null, 2)}</pre>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   // Function to parse markdown-like text and format it with React components
-  const formatContent = (text: string) => {
+  function formatContent(text: string) {
     if (!text) return null;
 
     // Split the content by lines
@@ -69,30 +146,7 @@ export function SearchResults({ content, query }: SearchResultsProps) {
 
           // Toggle bold state
           isBold = !isBold;
-
-          // If we're starting bold text, remember the marker
-          if (isBold) {
-            marker = delimiter;
-            lastIndex = match.index + delimiter.length;
-          } else {
-            // We're ending bold text, add the bold part
-            if (marker === delimiter) {
-              parts.push(
-                <strong key={`${index}-bold`} className="font-bold">
-                  {currentText.substring(lastIndex, match.index)}
-                </strong>
-              );
-              lastIndex = match.index + delimiter.length;
-            } else {
-              // Mismatched delimiters, just add as text
-              parts.push(
-                <span key={`${index}-text`}>
-                  {marker + currentText.substring(lastIndex, match.index) + delimiter}
-                </span>
-              );
-              lastIndex = match.index + delimiter.length;
-            }
-          }
+          lastIndex = match.index + delimiter.length;
           index++;
         }
 
@@ -108,47 +162,8 @@ export function SearchResults({ content, query }: SearchResultsProps) {
         return <p key={index}>{parts}</p>;
       }
 
-      // Check if this is a store/price line (look for $ or price indicators)
-      if (line.match(/\$\d+/) || line.match(/\d+\s*[.,-]\s*\d{2}/) || line.match(/\*\*.*\*\*/)) {
-        // Check if it's a numbered item like "1. Store - $price"
-        const storeMatch = line.match(/^(\d+)\.\s+\*\*([^*]+)\*\*\s*-\s*(.*)$/);
-        if (storeMatch) {
-          const [_, number, store, details] = storeMatch;
-          return (
-            <div key={index} className="flex items-start gap-2 mt-4 mb-2">
-              <Badge variant="outline" className="rounded-full h-6 w-6 flex items-center justify-center p-0 text-sm bg-primary/10">
-                {number}
-              </Badge>
-              <div>
-                <strong className="font-bold">{store}</strong> - {details}
-              </div>
-            </div>
-          );
-        }
-
-        // For other price-related lines, highlight them
-        return (
-          <div key={index} className="my-1 pl-4 border-l-2 border-primary">
-            {line}
-          </div>
-        );
-      }
-
-      // Default paragraph
-      return <p key={index} className="my-1">{line}</p>;
+      // Regular paragraph
+      return <p key={index} className="my-2">{line}</p>;
     });
-  };
-
-  return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Search Results for "{query}"
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="prose max-w-none">
-        {formatContent(content)}
-      </CardContent>
-    </Card>
-  );
+  }
 }

@@ -1,23 +1,19 @@
-// Separate client-side logic into a different component
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SearchBar } from "@/components/search-bar";
+import { SearchResults } from "@/components/search-results";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { SearchBar } from "@/components/search-bar";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SearchResults } from "@/components/search-results";
-import { type SearchResult, mockSearchResult } from "@/lib/search";
-// Remove the commented import statement
-// import { generateStaticParams } from "./staticParams";
-
-export const dynamic = 'force-static';
+import { SearchResult } from "@/lib/search";
 
 export default function SearchPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [result, setResult] = useState<SearchResult | null>(null);
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,38 +32,30 @@ export default function SearchPage() {
 
     setLoading(true);
     setError(null);
-    console.log(`Performing search for: ${searchQuery}`); // Debugging log
+    console.log(`Performing search for: ${searchQuery}`);
 
     try {
       // Send the search query to the API
-      const response = await fetch(
-        "https://api.stack-ai.com/inference/v0/run/90d983fc-f852-4d72-b781-f93fb22f6c84/67e6048393d5490f2d932e58",
-        {
-          headers: {
-            Authorization: "Bearer 7963ab82-f620-4f3f-9ef4-02a66a58c222",
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-          body: JSON.stringify({
-            user_id: "anonymous", // Replace with actual user ID if available
-            "in-0": searchQuery,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Search failed with status: ${response.status}`);
-      }
+      const response = await fetch("/api/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: searchQuery }),
+      });
 
       const data = await response.json();
-      console.log("API response:", data); // Debugging log
+      console.log("API response:", data);
 
-      // Extract the relevant content from the API response
-      const outputContent = data.outputs["out-0"];
+      // Check if the response contains an error message
+      if (data.error) {
+        setError(`Error: ${data.error}`);
+        return;
+      }
 
-      // Display the extracted content
+      // Set the result - could be an array of products or a string
       setResult({
-        content: outputContent,
+        content: data,
         query: searchQuery,
       });
     } catch (err) {
@@ -90,39 +78,41 @@ export default function SearchPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1">
-        <div className="container py-8">
-          <div className="mb-8 flex justify-between items-center">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl mb-4">
-              Search Results
-            </h1>
-          </div>
-          <SearchBar defaultValue={query} onSearch={handleSearch} />
-          
-          {/* Display loading state */}
-          {loading && (
-            <div className="mt-8 space-y-4">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-            </div>
-          )}
-
-          {/* Display error message */}
-          {error && (
-            <div className="mt-8 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-              {error}
-            </div>
-          )}
-
-          {/* Display search results */}
-          {!loading && !error && result && (
-            <div className="mt-8">
-              <SearchResults content={result.content} query={result.query} />
-            </div>
-          )}
+      <main className="flex-1 container py-8">
+        <div className="mb-8">
+          <SearchBar
+            defaultValue={query}
+            onSearch={handleSearch}
+            className="max-w-3xl mx-auto"
+          />
         </div>
+
+        {loading && (
+          <Card className="mb-8">
+            <CardContent className="pt-6">
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-[250px]" />
+                <Skeleton className="h-4 w-[300px]" />
+                <Skeleton className="h-4 w-[250px]" />
+                <div className="pt-4">
+                  <Skeleton className="h-[200px] w-full" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {error && (
+          <Card className="mb-8 border-destructive">
+            <CardContent className="pt-6 text-destructive">
+              {error}
+            </CardContent>
+          </Card>
+        )}
+
+        {!loading && !error && result && (
+          <SearchResults content={result.content} query={result.query} />
+        )}
       </main>
       <Footer />
     </div>
