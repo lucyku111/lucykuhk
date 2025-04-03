@@ -13,11 +13,19 @@
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  # Define function-specific settings
   node_bundler = "esbuild"
+  included_files = ["**"]
+  external_node_modules = ["next"]
 
-  # Define function-specific timeouts
-  [functions."api/search"]
-    included_files = ["**"]
-    node_bundler = "esbuild"
-    external_node_modules = ["next"]
+# This is the correct way to set function timeout in Netlify
+[functions."api/search"]
+  included_files = ["**"]
+  node_bundler = "esbuild"
+  external_node_modules = ["next"]
+
+# Add this section to properly set the timeout
+[[headers]]
+  for = "/api/search"
+  [headers.values]
+    "Access-Control-Allow-Origin" = "*"
+    "Access-Control-Allow-Methods" = "GET, POST, OPTIONS"
