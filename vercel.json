@@ -1,7 +1,16 @@
 {
   "functions": {
     "api/search/*.js": {
-      "maxDuration": 30
+      "maxDuration": 60
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/api/search",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" }
+      ]
+    }
+  ]
 }

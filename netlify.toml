@@ -13,5 +13,30 @@
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  # Increase the timeout for all functions to 30 seconds
-  timeout = 30
+  node_bundler = "esbuild"
+  # Limit included files to reduce function size
+  included_files = [
+    "src/app/api/search/**",
+    ".env*"
+  ]
+  external_node_modules = ["next"]
+
+# Function-specific configuration
+[functions."api/search"]
+  # Only include necessary files
+  included_files = [
+    "src/app/api/search/**",
+    ".env*"
+  ]
+  external_node_modules = ["next"]
+
+[[headers]]
+  for = "/api/search"
+  [headers.values]
+    "Access-Control-Allow-Origin" = "*"
+    "Access-Control-Allow-Methods" = "GET, POST, OPTIONS"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    "Cache-Control" = "public, max-age=31536000, immutable"

@@ -15,7 +15,15 @@ const nextConfig = {
       "ugc.same-assets.com",
     ],
   },
-  // Remove Netlify-specific experimental section
+  // Add serverless function configuration for Vercel
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    timeoutMs: 30000, // 30 seconds timeout
+  },
+  publicRuntimeConfig: {
+    // Will be available on both server and client
+    apiTimeout: 25000, // 25 seconds timeout for client-side
+  },
 };
 
 module.exports = nextConfig;
