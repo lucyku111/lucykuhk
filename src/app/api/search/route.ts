@@ -39,38 +39,40 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId);
 
-      // Always return a valid product array, even on error
-      if (!response.ok) {
-        return NextResponse.json([{
-          "Product": `Search error (${response.status})`,
-          "Price": "N/A",
-          "Store": "N/A",
-          "URL": "#"
-        }], { status: 200 }); // Force 200 status
-      }
-
       // Get response text first to avoid JSON parsing errors
       const responseText = await response.text();
+      
+      // If response is not OK, return the raw response for debugging
+      if (!response.ok) {
+        return NextResponse.json([{
+          "Product": `API Error: ${response.status} ${response.statusText}`,
+          "Price": "Raw Response:",
+          "Store": responseText.substring(0, 100) + (responseText.length > 100 ? "..." : ""),
+          "URL": "#"
+        }], { status: 200 });
+      }
       
       // Try to parse the response as JSON
       let result;
       try {
         result = JSON.parse(responseText);
       } catch (e) {
+        // Return the raw response for debugging
         return NextResponse.json([{
-          "Product": "Invalid API response",
-          "Price": "N/A",
-          "Store": "N/A",
+          "Product": "JSON Parse Error",
+          "Price": "Raw Response:",
+          "Store": responseText.substring(0, 100) + (responseText.length > 100 ? "..." : ""),
           "URL": "#"
         }], { status: 200 });
       }
       
       // Check if the response has the expected structure
       if (!result.outputs || !result.outputs["out-0"]) {
+        // Return the raw response structure for debugging
         return NextResponse.json([{
-          "Product": "Unexpected API response format",
-          "Price": "N/A",
-          "Store": "N/A",
+          "Product": "Invalid Response Structure",
+          "Price": "Raw Response:",
+          "Store": JSON.stringify(result).substring(0, 100) + "...",
           "URL": "#"
         }], { status: 200 });
       }
@@ -93,41 +95,39 @@ export async function POST(request: NextRequest) {
           // Return the parsed array
           return NextResponse.json(jsonArray, { status: 200 });
         } catch (e) {
-          // If parsing fails, return a fallback response
+          // Return the matched JSON for debugging
           return NextResponse.json([{
-            "Product": "Error processing results",
-            "Price": "N/A",
-            "Store": "N/A",
+            "Product": "JSON Parse Error in Match",
+            "Price": "Matched Content:",
+            "Store": jsonMatch[0].substring(0, 100) + (jsonMatch[0].length > 100 ? "..." : ""),
             "URL": "#"
           }], { status: 200 });
         }
       }
       
-      // If no JSON array was found, return a fallback response
+      // If no JSON array was found, return the raw output for debugging
       return NextResponse.json([{
-        "Product": "No results found",
-        "Price": "N/A",
-        "Store": "N/A",
+        "Product": "No JSON Array Found",
+        "Price": "Raw Output:",
+        "Store": outputContent.substring(0, 100) + (outputContent.length > 100 ? "..." : ""),
         "URL": "#"
       }], { status: 200 });
     } catch (fetchError) {
       clearTimeout(timeoutId);
       
-      // Always return a valid product array
+      // Return detailed error information
       return NextResponse.json([{
-        "Product": fetchError.name === 'AbortError' 
-          ? "Search timed out - please try again" 
-          : "Search failed - please try again",
-        "Price": "N/A",
+        "Product": `Fetch Error: ${fetchError.name}`,
+        "Price": `Message: ${fetchError.message}`,
         "Store": "N/A",
         "URL": "#"
       }], { status: 200 });
     }
   } catch (error) {
-    // Always return a valid product array
+    // Return detailed error information
     return NextResponse.json([{
-      "Product": "An error occurred",
-      "Price": "N/A",
+      "Product": `General Error: ${error.name || "Unknown"}`,
+      "Price": `Message: ${error.message || "No message"}`,
       "Store": "N/A",
       "URL": "#"
     }], { status: 200 });
