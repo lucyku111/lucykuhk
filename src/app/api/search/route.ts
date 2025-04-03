@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // Shorter timeout to avoid server timeouts
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
       // Simplified API call without retries
@@ -39,14 +39,14 @@ export async function POST(request: NextRequest) {
 
       clearTimeout(timeoutId);
 
-      // Handle non-OK responses
+      // Always return a valid product array, even on error
       if (!response.ok) {
         return NextResponse.json([{
           "Product": `Search error (${response.status})`,
           "Price": "N/A",
           "Store": "N/A",
           "URL": "#"
-        }]);
+        }], { status: 200 }); // Force 200 status
       }
 
       // Get response text first to avoid JSON parsing errors
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
           "Price": "N/A",
           "Store": "N/A",
           "URL": "#"
-        }]);
+        }], { status: 200 });
       }
       
       // Check if the response has the expected structure
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
           "Price": "N/A",
           "Store": "N/A",
           "URL": "#"
-        }]);
+        }], { status: 200 });
       }
       
       const outputContent = result.outputs["out-0"];
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
           const jsonArray = JSON.parse(sanitizedJson);
           
           // Return the parsed array
-          return NextResponse.json(jsonArray);
+          return NextResponse.json(jsonArray, { status: 200 });
         } catch (e) {
           // If parsing fails, return a fallback response
           return NextResponse.json([{
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
             "Price": "N/A",
             "Store": "N/A",
             "URL": "#"
-          }]);
+          }], { status: 200 });
         }
       }
       
@@ -109,35 +109,27 @@ export async function POST(request: NextRequest) {
         "Price": "N/A",
         "Store": "N/A",
         "URL": "#"
-      }]);
+      }], { status: 200 });
     } catch (fetchError) {
       clearTimeout(timeoutId);
       
-      // Handle timeout errors specifically
-      if (fetchError.name === 'AbortError') {
-        return NextResponse.json([{
-          "Product": "Search timed out - please try again",
-          "Price": "N/A",
-          "Store": "N/A",
-          "URL": "#"
-        }]);
-      }
-      
-      // Handle other fetch errors
+      // Always return a valid product array
       return NextResponse.json([{
-        "Product": "Search failed - please try again",
+        "Product": fetchError.name === 'AbortError' 
+          ? "Search timed out - please try again" 
+          : "Search failed - please try again",
         "Price": "N/A",
         "Store": "N/A",
         "URL": "#"
-      }]);
+      }], { status: 200 });
     }
   } catch (error) {
-    // Handle any other errors
+    // Always return a valid product array
     return NextResponse.json([{
       "Product": "An error occurred",
       "Price": "N/A",
       "Store": "N/A",
       "URL": "#"
-    }]);
+    }], { status: 200 });
   }
 }
