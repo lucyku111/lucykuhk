@@ -14,4 +14,4 @@
 
 [functions]
   # Increase the timeout for all functions to 30 seconds
-  timeout = 30
+  timeout = 60
