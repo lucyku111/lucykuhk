@@ -1,120 +1,145 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { SearchBar } from "@/components/search-bar";
-import { SearchResults } from "@/components/search-results";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { SearchResult } from "@/lib/search";
+import { Loader2 } from "lucide-react";
 
 export default function SearchPage() {
-  const router = useRouter();
   const [query, setQuery] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
-  // Get the query parameter from the URL
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const queryParam = searchParams.get("q");
-    if (queryParam) {
-      setQuery(queryParam);
-      performSearch(queryParam);
-    }
-  }, []);
-
-  async function performSearch(searchQuery: string) {
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!query.trim()) return;
 
     setLoading(true);
     setError(null);
-    console.log(`Performing search for: ${searchQuery}`);
 
     try {
-      // Send the search query to the API
-      const response = await fetch("/api/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ query: searchQuery }),
-      });
+      // Direct API call to Stack AI from the client side
+      const response = await fetch(
+        "https://api.stack-ai.com/inference/v0/run/a346ade7-c4ef-4997-8aab-c96c2d88f56f/67ee23605586884182ffb38d",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer 7362ca54-76ff-43b2-b705-e50015e54d15",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            "user_id": "anonymous-user",
+            "in-0": query
+          }),
+        }
+      );
 
       const data = await response.json();
-      console.log("API response:", data);
 
-      // Check if the response contains an error message
-      if (data.error) {
-        setError(`Error: ${data.error}`);
-        return;
+      // Process the response
+      if (data.errorType || data.errorMessage) {
+        throw new Error(data.errorMessage || "Search failed");
       }
 
-      // Set the result - could be an array of products or a string
-      setResult({
-        content: data,
-        query: searchQuery,
-      });
+      if (data.outputs && data.outputs["out-0"]) {
+        const outputContent = data.outputs["out-0"];
+        
+        // Try to extract product data
+        if (Array.isArray(outputContent) && outputContent.length > 0 && outputContent[0].Product) {
+          setResults(outputContent);
+        } else {
+          // Try to find a JSON array in the output
+          const jsonMatch = outputContent.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+          if (jsonMatch) {
+            try {
+              const products = JSON.parse(jsonMatch[0]);
+              setResults(products);
+            } catch (e) {
+              setResults([{
+                "Product": "Error processing results",
+                "Price": "Please try again",
+                "Store": "N/A",
+                "URL": "#"
+              }]);
+            }
+          } else {
+            setResults([{
+              "Product": "No products found",
+              "Price": "Try a different search term",
+              "Store": "N/A",
+              "URL": "#"
+            }]);
+          }
+        }
+      } else {
+        setResults([{
+          "Product": "Unexpected response format",
+          "Price": "Please try again later",
+          "Store": "N/A",
+          "URL": "#"
+        }]);
+      }
     } catch (err) {
-      console.error("Error searching products:", err);
-      setError("Failed to search for products. Please try again later.");
+      console.error("Search error:", err);
+      setError(err.message || "Search failed");
+      setResults([{
+        "Product": "Search error",
+        "Price": "Please try again later",
+        "Store": err.message || "Unknown error",
+        "URL": "#"
+      }]);
     } finally {
       setLoading(false);
     }
-  }
-
-  const handleSearch = (newQuery: string) => {
-    setQuery(newQuery);
-    // Update the URL
-    const url = new URL(window.location.href);
-    url.searchParams.set("q", newQuery);
-    window.history.pushState({}, "", url);
-    performSearch(newQuery);
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 container py-8">
-        <div className="mb-8">
-          <SearchBar
-            defaultValue={query}
-            onSearch={handleSearch}
-            className="max-w-3xl mx-auto"
-          />
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-6">Product Search</h1>
+      
+      <form onSubmit={handleSearch} className="flex gap-2 mb-6">
+        <Input
+          type="text"
+          placeholder="Search for products..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="flex-1"
+        />
+        <Button type="submit" disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Search
+        </Button>
+      </form>
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
         </div>
-
-        {loading && (
-          <Card className="mb-8">
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-[250px]" />
-                <Skeleton className="h-4 w-[300px]" />
-                <Skeleton className="h-4 w-[250px]" />
-                <div className="pt-4">
-                  <Skeleton className="h-[200px] w-full" />
-                </div>
-              </div>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {results.map((product, index) => (
+          <Card key={index}>
+            <CardContent className="p-4">
+              <h3 className="font-bold">{product.Product}</h3>
+              <p className="text-lg font-semibold text-green-600">{product.Price}</p>
+              <p className="text-gray-600">Store: {product.Store}</p>
+              {product.URL && product.URL !== "#" ? (
+                <a 
+                  href={product.URL} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline mt-2 inline-block"
+                >
+                  View Product
+                </a>
+              ) : null}
             </CardContent>
           </Card>
-        )}
-
-        {error && (
-          <Card className="mb-8 border-destructive">
-            <CardContent className="pt-6 text-destructive">
-              {error}
-            </CardContent>
-          </Card>
-        )}
-
-        {!loading && !error && result && (
-          <SearchResults content={result.content} query={result.query} />
-        )}
-      </main>
-      <Footer />
+        ))}
+      </div>
     </div>
   );
 }
