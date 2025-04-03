@@ -14,8 +14,9 @@ async function query(data) {
     }
   );
   
-  // Return the raw response
-  return response;
+  // Parse the JSON response
+  const result = await response.json();
+  return result;
 }
 
 export async function POST(request: NextRequest) {
@@ -33,32 +34,71 @@ export async function POST(request: NextRequest) {
     }
 
     // Use the query function with the same parameters
-    const response = await query({
+    const result = await query({
       "user_id": "anonymous-user",
       "in-0": searchQuery
     });
     
-    // Get response details
-    const status = response.status;
-    const statusText = response.statusText;
-    const contentType = response.headers.get('content-type');
+    // Check if the API returned an error
+    if (result.errorType || result.errorMessage) {
+      return NextResponse.json([{
+        "Product": "Search service temporarily unavailable",
+        "Price": "Please try again later",
+        "Store": "Error: " + (result.errorMessage || "Unknown error"),
+        "URL": "#"
+      }]);
+    }
     
-    // Get the raw response text
-    const responseText = await response.text();
+    // Check if we have outputs in the expected format
+    if (result.outputs && result.outputs["out-0"]) {
+      const outputContent = result.outputs["out-0"];
+      
+      // Try to extract product data from the output
+      try {
+        // If the output is already a JSON array of products
+        if (Array.isArray(outputContent) && outputContent.length > 0 && outputContent[0].Product) {
+          return NextResponse.json(outputContent);
+        }
+        
+        // If the output is a string containing a JSON array
+        const jsonMatch = outputContent.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+        if (jsonMatch) {
+          const products = JSON.parse(jsonMatch[0]);
+          return NextResponse.json(products);
+        }
+        
+        // If we couldn't extract products, return a formatted message
+        return NextResponse.json([{
+          "Product": "No products found for: " + searchQuery,
+          "Price": "Try a different search term",
+          "Store": "N/A",
+          "URL": "#"
+        }]);
+      } catch (e) {
+        // If there was an error processing the output
+        return NextResponse.json([{
+          "Product": "Error processing search results",
+          "Price": "Please try again",
+          "Store": "N/A",
+          "URL": "#"
+        }]);
+      }
+    }
     
-    // Return all the raw information for debugging
-    return NextResponse.json({
-      query: searchQuery,
-      status: status,
-      statusText: statusText,
-      contentType: contentType,
-      responseText: responseText
-    });
+    // If the response doesn't have the expected structure
+    return NextResponse.json([{
+      "Product": "Unexpected response format",
+      "Price": "Please try again later",
+      "Store": "N/A",
+      "URL": "#"
+    }]);
     
   } catch (error) {
-    return NextResponse.json({ 
-      error: "API request failed", 
-      message: error.message 
-    });
+    return NextResponse.json([{
+      "Product": "Search error",
+      "Price": "Please try again later",
+      "Store": error.message || "Unknown error",
+      "URL": "#"
+    }]);
   }
 }
