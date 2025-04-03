@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,16 +33,27 @@ export async function POST(request: NextRequest) {
       throw new Error(`API responded with status: ${response.status}`);
     }
 
-    // Get the raw text response
+    // Get the response
     const result = await response.json();
-
-    // The API might return an object with a text property or just a string
-    // Handle both cases gracefully
-    const content = typeof result === 'string'
-      ? result
-      : result.text || result.content || JSON.stringify(result);
-
-    return NextResponse.json(content);
+    
+    // Extract the output content
+    const outputContent = result.outputs["out-0"];
+    
+    // Find the JSON array in the string response
+    const jsonMatch = outputContent.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+    
+    if (jsonMatch) {
+      try {
+        const jsonArray = JSON.parse(jsonMatch[0]);
+        return NextResponse.json(jsonArray);
+      } catch (e) {
+        console.error("JSON parsing error:", e);
+        throw new Error("Failed to parse JSON from response");
+      }
+    } else {
+      throw new Error("No JSON array found in response");
+    }
+    
   } catch (error) {
     console.error("Search API error:", error);
     return NextResponse.json(
