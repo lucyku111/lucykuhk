@@ -15,9 +15,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Detect if we're running in Netlify
+    const isNetlify = process.env.NETLIFY === 'true';
+    const timeoutDuration = isNetlify ? 25000 : 15000; // 25 seconds for Netlify, 15 for local
+
     // Increase timeout for local development
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
     try {
       const response = await fetch(
