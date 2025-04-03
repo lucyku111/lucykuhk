@@ -12,7 +12,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call the Stack AI API
+    // Call the Stack AI API with a longer timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+
     const response = await fetch(
       "https://api.stack-ai.com/inference/v0/run/90d983fc-f852-4d72-b781-f93fb22f6c84/67e6048393d5490f2d932e58",
       {
@@ -26,8 +29,11 @@ export async function POST(request: NextRequest) {
           "in-0": query,
         }),
         cache: "no-store",
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`API responded with status: ${response.status}`);
