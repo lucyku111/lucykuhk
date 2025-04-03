@@ -1,64 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Helper function to query the Stack AI API with new credentials
+async function query(data) {
+  const response = await fetch(
+    "https://api.stack-ai.com/inference/v0/run/a346ade7-c4ef-4997-8aab-c96c2d88f56f/67ee23605586884182ffb38d",
+    {
+      headers: {
+        'Authorization': 'Bearer 7362ca54-76ff-43b2-b705-e50015e54d15',
+        'Content-Type': 'application/json'
+      },
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+  
+  // Return the raw response
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query } = body;
+    const { query: searchQuery } = body;
 
-    if (!query) {
-      return NextResponse.json(
-        { error: "Search query is required" },
-        { status: 400 }
-      );
+    if (!searchQuery) {
+      return NextResponse.json([{
+        "Product": "Please enter a search query",
+        "Price": "N/A",
+        "Store": "N/A",
+        "URL": "#"
+      }]);
     }
 
-    // Call the Stack AI API
-    const response = await fetch(
-      "https://api.stack-ai.com/inference/v0/run/90d983fc-f852-4d72-b781-f93fb22f6c84/67e6048393d5490f2d932e58",
-      {
-        headers: {
-          Authorization: "Bearer 7362ca54-76ff-43b2-b705-e50015e54d15",
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-        body: JSON.stringify({
-          user_id: `${request.headers.get("x-forwarded-for") || "anonymous"}`,
-          "in-0": query,
-        }),
-        cache: "no-store",
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
-    }
-
-    // Get the response
-    const result = await response.json();
+    // Use the query function with the same parameters
+    const response = await query({
+      "user_id": "anonymous-user",
+      "in-0": searchQuery
+    });
     
-    // Extract the output content
-    const outputContent = result.outputs["out-0"];
+    // Get response details
+    const status = response.status;
+    const statusText = response.statusText;
+    const contentType = response.headers.get('content-type');
     
-    // Try to parse the content as JSON if it's a string
-    let parsedContent;
-    if (typeof outputContent === 'string') {
-      try {
-        parsedContent = JSON.parse(outputContent);
-        return NextResponse.json(parsedContent);
-      } catch (e) {
-        // If parsing fails, return the string as is
-        return NextResponse.json(outputContent);
-      }
-    }
+    // Get the raw response text
+    const responseText = await response.text();
     
-    // If it's already an object, return it directly
-    return NextResponse.json(outputContent);
+    // Return all the raw information for debugging
+    return NextResponse.json({
+      query: searchQuery,
+      status: status,
+      statusText: statusText,
+      contentType: contentType,
+      responseText: responseText
+    });
     
   } catch (error) {
-    console.error("Search API error:", error);
-    return NextResponse.json(
-      { error: "Failed to search for products. Please try again later." },
-      { status: 500 }
-    );
+    return NextResponse.json({ 
+      error: "API request failed", 
+      message: error.message 
+    });
   }
 }
