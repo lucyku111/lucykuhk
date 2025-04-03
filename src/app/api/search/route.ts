@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execPromise = promisify(exec);
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,40 +18,20 @@ export async function POST(request: NextRequest) {
       }]);
     }
 
-    // Shorter timeout to avoid server timeouts
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
     try {
-      // Simplified API call without retries
-      const response = await fetch(
-        "https://api.stack-ai.com/inference/v0/run/90d983fc-f852-4d72-b781-f93fb22f6c84/67e6048393d5490f2d932e58",
-        {
-          headers: {
-            Authorization: "Bearer 7963ab82-f620-4f3f-9ef4-02a66a58c222",
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-          body: JSON.stringify({
-            user_id: `${request.headers.get("x-forwarded-for") || "anonymous"}`,
-            "in-0": query,
-          }),
-          cache: "no-store",
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      // Get response text first to avoid JSON parsing errors
-      const responseText = await response.text();
+      // Use curl command instead of fetch
+      const userId = request.headers.get("x-forwarded-for") || "anonymous";
+      const curlCommand = `curl "https://api.stack-ai.com/inference/v0/run/90d983fc-f852-4d72-b781-f93fb22f6c84/67e6048393d5490f2d932e58" -X POST -d "{\\"user_id\\": \\"${userId}\\", \\"in-0\\": \\"${query}\\"}" -H "Content-Type: application/json" -H "Authorization: Bearer 7963ab82-f620-4f3f-9ef4-02a66a58c222"`;
       
-      // If response is not OK, return the raw response for debugging
-      if (!response.ok) {
+      // Execute the curl command with a timeout
+      const { stdout, stderr } = await execPromise(curlCommand, { timeout: 20000 });
+      
+      if (stderr) {
+        console.error('Curl error:', stderr);
         return NextResponse.json([{
-          "Product": `API Error: ${response.status} ${response.statusText}`,
-          "Price": "Raw Response:",
-          "Store": responseText.substring(0, 100) + (responseText.length > 100 ? "..." : ""),
+          "Product": "Curl Error",
+          "Price": "Error details:",
+          "Store": stderr.substring(0, 100) + (stderr.length > 100 ? "..." : ""),
           "URL": "#"
         }], { status: 200 });
       }
@@ -55,20 +39,18 @@ export async function POST(request: NextRequest) {
       // Try to parse the response as JSON
       let result;
       try {
-        result = JSON.parse(responseText);
+        result = JSON.parse(stdout);
       } catch (e) {
-        // Return the raw response for debugging
         return NextResponse.json([{
           "Product": "JSON Parse Error",
           "Price": "Raw Response:",
-          "Store": responseText.substring(0, 100) + (responseText.length > 100 ? "..." : ""),
+          "Store": stdout.substring(0, 100) + (stdout.length > 100 ? "..." : ""),
           "URL": "#"
         }], { status: 200 });
       }
       
       // Check if the response has the expected structure
       if (!result.outputs || !result.outputs["out-0"]) {
-        // Return the raw response structure for debugging
         return NextResponse.json([{
           "Product": "Invalid Response Structure",
           "Price": "Raw Response:",
@@ -95,7 +77,6 @@ export async function POST(request: NextRequest) {
           // Return the parsed array
           return NextResponse.json(jsonArray, { status: 200 });
         } catch (e) {
-          // Return the matched JSON for debugging
           return NextResponse.json([{
             "Product": "JSON Parse Error in Match",
             "Price": "Matched Content:",
@@ -112,14 +93,12 @@ export async function POST(request: NextRequest) {
         "Store": outputContent.substring(0, 100) + (outputContent.length > 100 ? "..." : ""),
         "URL": "#"
       }], { status: 200 });
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
-      // Return detailed error information
+    } catch (execError) {
+      // Handle execution errors
       return NextResponse.json([{
-        "Product": `Fetch Error: ${fetchError.name}`,
-        "Price": `Message: ${fetchError.message}`,
-        "Store": "N/A",
+        "Product": `Execution Error: ${execError.name || "Unknown"}`,
+        "Price": `Message: ${execError.message || "No message"}`,
+        "Store": "Command timed out or failed",
         "URL": "#"
       }], { status: 200 });
     }
