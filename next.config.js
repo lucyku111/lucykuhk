@@ -15,10 +15,7 @@ const nextConfig = {
       "ugc.same-assets.com",
     ],
   },
-  // Simplified experimental section
-  experimental: {
-    serverExternalPackages: ['@netlify/plugin-nextjs']
-  }
+  // Remove Netlify-specific experimental section
 };
 
 module.exports = nextConfig;
