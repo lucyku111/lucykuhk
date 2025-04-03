@@ -13,5 +13,11 @@
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  # Increase the timeout for all functions to 30 seconds
-  timeout = 60
+  # Define function-specific settings
+  node_bundler = "esbuild"
+
+  # Define function-specific timeouts
+  [functions."api/search"]
+    included_files = ["**"]
+    node_bundler = "esbuild"
+    external_node_modules = ["next"]
