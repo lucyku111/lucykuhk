@@ -14,68 +14,61 @@ export async function POST(request: NextRequest) {
       }]);
     }
 
-    // Use a consistent timeout
+    // Shorter timeout to avoid server timeouts
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // Reduced timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     try {
-      // Add retry logic for the API call
-      let retries = 2;
-      let response = null;
-      let lastError = null;
-
-      while (retries >= 0) {
-        try {
-          response = await fetch(
-            "https://api.stack-ai.com/inference/v0/run/90d983fc-f852-4d72-b781-f93fb22f6c84/67e6048393d5490f2d932e58",
-            {
-              headers: {
-                Authorization: "Bearer 7963ab82-f620-4f3f-9ef4-02a66a58c222",
-                "Content-Type": "application/json",
-              },
-              method: "POST",
-              body: JSON.stringify({
-                user_id: `${request.headers.get("x-forwarded-for") || "anonymous"}`,
-                "in-0": query,
-              }),
-              cache: "no-store",
-              signal: controller.signal,
-            }
-          );
-          
-          if (response.ok) break;
-          lastError = new Error(`API responded with status: ${response.status}`);
-          retries--;
-          
-          // Wait before retrying
-          if (retries >= 0) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        } catch (e) {
-          lastError = e;
-          retries--;
-          if (retries >= 0) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
+      // Simplified API call without retries
+      const response = await fetch(
+        "https://api.stack-ai.com/inference/v0/run/90d983fc-f852-4d72-b781-f93fb22f6c84/67e6048393d5490f2d932e58",
+        {
+          headers: {
+            Authorization: "Bearer 7963ab82-f620-4f3f-9ef4-02a66a58c222",
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+          body: JSON.stringify({
+            user_id: `${request.headers.get("x-forwarded-for") || "anonymous"}`,
+            "in-0": query,
+          }),
+          cache: "no-store",
+          signal: controller.signal,
         }
-      }
+      );
 
       clearTimeout(timeoutId);
 
-      if (!response || !response.ok) {
+      // Handle non-OK responses
+      if (!response.ok) {
         return NextResponse.json([{
-          "Product": `Search error: ${lastError?.message || "Server error"}`,
+          "Product": `Search error (${response.status})`,
           "Price": "N/A",
           "Store": "N/A",
           "URL": "#"
         }]);
       }
 
-      const result = await response.json();
+      // Get response text first to avoid JSON parsing errors
+      const responseText = await response.text();
       
+      // Try to parse the response as JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        return NextResponse.json([{
+          "Product": "Invalid API response",
+          "Price": "N/A",
+          "Store": "N/A",
+          "URL": "#"
+        }]);
+      }
+      
+      // Check if the response has the expected structure
       if (!result.outputs || !result.outputs["out-0"]) {
         return NextResponse.json([{
-          "Product": "Invalid API response format",
+          "Product": "Unexpected API response format",
           "Price": "N/A",
           "Store": "N/A",
           "URL": "#"
@@ -84,64 +77,64 @@ export async function POST(request: NextRequest) {
       
       const outputContent = result.outputs["out-0"];
       
-      // Try multiple parsing strategies
-      try {
-        // First try: direct JSON parse if it's already JSON
+      // Simple approach: extract JSON array using regex
+      const jsonMatch = outputContent.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+      
+      if (jsonMatch) {
         try {
-          if (typeof outputContent === 'object') {
-            return NextResponse.json(outputContent);
-          }
-        } catch (e) {
-          // Continue to next strategy
-        }
-        
-        // Second try: regex match for JSON array
-        const jsonMatch = outputContent.match(/\[\s*\{[\s\S]*?\}\s*\]/);
-        if (jsonMatch) {
-          const sanitizedJson = jsonMatch[0].replace(/[\u0000-\u001F]+/g, " ").trim();
-          const jsonArray = JSON.parse(sanitizedJson);
-          return NextResponse.json(jsonArray);
-        }
-        
-        // Third try: broader regex match
-        const fallbackMatch = outputContent.match(/\[[\s\S]*\]/);
-        if (fallbackMatch) {
-          const sanitized = fallbackMatch[0]
+          // Basic sanitization
+          const sanitizedJson = jsonMatch[0]
             .replace(/[\u0000-\u001F]+/g, " ")
-            .replace(/,\s*\]/g, "]")
-            .replace(/,\s*,/g, ",")
             .trim();
-          const jsonArray = JSON.parse(sanitized);
+          
+          // Parse the JSON array
+          const jsonArray = JSON.parse(sanitizedJson);
+          
+          // Return the parsed array
           return NextResponse.json(jsonArray);
+        } catch (e) {
+          // If parsing fails, return a fallback response
+          return NextResponse.json([{
+            "Product": "Error processing results",
+            "Price": "N/A",
+            "Store": "N/A",
+            "URL": "#"
+          }]);
         }
-        
-        // If we get here, no parsing strategy worked
+      }
+      
+      // If no JSON array was found, return a fallback response
+      return NextResponse.json([{
+        "Product": "No results found",
+        "Price": "N/A",
+        "Store": "N/A",
+        "URL": "#"
+      }]);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      // Handle timeout errors specifically
+      if (fetchError.name === 'AbortError') {
         return NextResponse.json([{
-          "Product": "Could not parse search results",
-          "Price": "N/A",
-          "Store": "N/A",
-          "URL": "#"
-        }]);
-      } catch (parsingError) {
-        return NextResponse.json([{
-          "Product": "Error parsing results",
+          "Product": "Search timed out - please try again",
           "Price": "N/A",
           "Store": "N/A",
           "URL": "#"
         }]);
       }
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
+      
+      // Handle other fetch errors
       return NextResponse.json([{
-        "Product": fetchError.name === 'AbortError' ? "Search timeout - please try again" : `Search error: ${fetchError.message || "Unknown error"}`,
+        "Product": "Search failed - please try again",
         "Price": "N/A",
         "Store": "N/A",
         "URL": "#"
       }]);
     }
   } catch (error) {
+    // Handle any other errors
     return NextResponse.json([{
-      "Product": "Error occurred - please try again later",
+      "Product": "An error occurred",
       "Price": "N/A",
       "Store": "N/A",
       "URL": "#"
