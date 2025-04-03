@@ -21,7 +21,10 @@
 
 [build]
   command = "npm run build"
-  publish = "out"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 # Keep only one [images] section
 [images]
