@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Helper function to query the Stack AI API
+// Helper function to query the Stack AI API with new credentials
 async function query(data) {
   const response = await fetch(
-    "https://api.stack-ai.com/inference/v0/run/90d983fc-f852-4d72-b781-f93fb22f6c84/67e6048393d5490f2d932e58",
+    "https://api.stack-ai.com/inference/v0/run/a346ade7-c4ef-4997-8aab-c96c2d88f56f/67ee23605586884182ffb38d",
     {
       headers: {
-        'Authorization': 'Bearer 7963ab82-f620-4f3f-9ef4-02a66a58c222',
+        'Authorization': 'Bearer 7362ca54-76ff-43b2-b705-e50015e54d15',
         'Content-Type': 'application/json'
       },
       method: "POST",
