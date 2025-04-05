@@ -1,34 +1,35 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { Search } from "lucide-react";
-import { useAuth } from "@/context/auth-context";
-import { LoginModal } from "@/components/login-modal";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { Search } from 'lucide-react';
+import { LoginModal } from '@/components/login-modal';
 
 export function Header() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const pathname = usePathname();
   const { user, signOut, isLoading } = useAuth();
-
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  
+  // Check if current path is the dashboard
+  const isOnDashboard = pathname === '/search';
+  
   const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
+    await signOut();
   };
-
+  
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-background">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
@@ -78,6 +79,12 @@ export function Header() {
                   <p className="text-sm font-medium leading-none">{user.email}</p>
                 </div>
                 <DropdownMenuSeparator />
+                {/* Add Dashboard link - only show if not already on dashboard */}
+                {!isOnDashboard && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/search">Dashboard</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
