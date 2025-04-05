@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, ShoppingCart, Tag } from "lucide-react";
+import { ExternalLink, ShoppingCart, Tag, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from '@/lib/supabase';
 
 interface ProductResult {
   Product: string;
@@ -16,9 +17,51 @@ interface ProductResult {
 interface SearchResultsProps {
   content: string | ProductResult[];
   query: string;
+  onToggleFavorite?: (product: ProductResult) => void;
 }
 
-export function SearchResults({ content, query }: SearchResultsProps) {
+export function SearchResults({ content, query, onToggleFavorite }: SearchResultsProps) {
+  const [favoriteItems, setFavoriteItems] = useState<Record<string, boolean>>({});
+  
+  useEffect(() => {
+    // Fetch the user's favorite products when the component mounts
+    const fetchFavorites = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('favorite_products')
+        .select('product_name')
+        .eq('user_id', user.id);
+      
+      if (data) {
+        // Create a map of product names to boolean values
+        const favMap = data.reduce((acc, item) => {
+          acc[item.product_name] = true;
+          return acc;
+        }, {} as Record<string, boolean>);
+        
+        setFavoriteItems(favMap);
+      }
+    };
+    
+    fetchFavorites();
+  }, []);
+  
+  // Handle toggling favorites with local state update
+  const handleToggleFavorite = (product: ProductResult) => {
+    // Update local state immediately for better UX
+    setFavoriteItems(prev => ({
+      ...prev,
+      [product.Product]: !prev[product.Product]
+    }));
+    
+    // Call the parent component's handler
+    if (onToggleFavorite) {
+      onToggleFavorite(product);
+    }
+  };
+
   // Check if content is an array of product results
   const isProductArray = Array.isArray(content) && 
     content.length > 0 && 
@@ -42,9 +85,25 @@ export function SearchResults({ content, query }: SearchResultsProps) {
           {products.map((product, index) => (
             <Card key={index} className="overflow-hidden transition-all hover:shadow-lg">
               <CardHeader className="bg-muted/50 pb-3">
-                <CardTitle className="line-clamp-2 text-base font-medium">
-                  {product.Product}
-                </CardTitle>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="line-clamp-2 text-base font-medium">
+                    {product.Product}
+                  </CardTitle>
+                  {onToggleFavorite && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className={favoriteItems[product.Product] ? "text-red-500" : "text-gray-400 hover:text-red-500"}
+                      onClick={() => handleToggleFavorite(product)}
+                    >
+                      {favoriteItems[product.Product] ? (
+                        <Heart className="h-5 w-5 fill-current" />
+                      ) : (
+                        <Heart className="h-5 w-5" />
+                      )}
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="mb-4 flex items-center justify-between">

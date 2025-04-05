@@ -74,7 +74,7 @@ export function Header() {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuContent align="end" className="w-56">
                 <div className="flex flex-col space-y-1 p-2">
                   <p className="text-sm font-medium leading-none">{user.email}</p>
                 </div>
@@ -86,11 +86,11 @@ export function Header() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
-                  <Link href="/profile">Profile</Link>
+                  <Link href="/favorites">Favorite Products</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
-                  Log out
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

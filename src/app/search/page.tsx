@@ -15,6 +15,10 @@ import { supabase } from '@/lib/supabase';
 
 // Create a client component that uses the search params
 function SearchPageContent() {
+  // Add this state to control client-side rendering
+  const [isClient, setIsClient] = useState(false);
+  
+  // Existing state declarations
   const searchParams = useSearchParams();
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -33,6 +37,81 @@ function SearchPageContent() {
     "Samsung Galaxy S23",
     "PlayStation 5"
   ]);
+  // Add state for favorite products count
+  const [favoriteProductsCount, setFavoriteProductsCount] = useState(0);
+
+  // Function to fetch favorite products count
+  const fetchFavoriteProductsCount = async () => {
+    if (!user) return;
+    
+    try {
+      const { count, error } = await supabase
+        .from('favorite_products')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      setFavoriteProductsCount(count || 0);
+    } catch (err) {
+      console.error("Error counting favorite products:", err);
+    }
+  };
+
+  // Load favorite products count when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      fetchFavoriteProductsCount();
+    }
+  }, [user]);
+
+  // Function to add/remove product from favorites
+  const toggleFavorite = async (product) => {
+    if (!user) return;
+    
+    try {
+      // Check if product is already in favorites
+      const { data: existingFavorites, error: fetchError } = await supabase
+        .from('favorite_products')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('product_url', product.URL) // Using URL as a unique identifier
+        .limit(1);
+        
+      if (fetchError) throw fetchError;
+      
+      if (existingFavorites && existingFavorites.length > 0) {
+        // Remove from favorites
+        const { error: deleteError } = await supabase
+          .from('favorite_products')
+          .delete()
+          .eq('id', existingFavorites[0].id);
+          
+        if (deleteError) throw deleteError;
+      } else {
+        // Add to favorites
+        const { error: insertError } = await supabase
+          .from('favorite_products')
+          .insert([
+            { 
+              user_id: user.id,
+              product_name: product.Product,
+              product_price: product.Price,
+              product_store: product.Store,
+              product_url: product.URL,
+              created_at: new Date().toISOString()
+            }
+          ]);
+          
+        if (insertError) throw insertError;
+      }
+      
+      // Refresh favorite count
+      fetchFavoriteProductsCount();
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+    }
+  };
 
   // Improved Lottie script loading
   useEffect(() => {
@@ -102,17 +181,40 @@ function SearchPageContent() {
     if (!user) return;
     
     try {
-      const { error } = await supabase
+      // First check if this search term already exists for this user
+      const { data: existingSearches, error: fetchError } = await supabase
         .from('search_history')
-        .insert([
-          { 
-            user_id: user.id, 
-            search_term: searchTerm,
-            created_at: new Date().toISOString()
-          }
-        ]);
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('search_term', searchTerm)
+        .limit(1);
         
-      if (error) throw error;
+      if (fetchError) throw fetchError;
+      
+      const now = new Date().toISOString();
+      
+      if (existingSearches && existingSearches.length > 0) {
+        // Update the existing search with new timestamp
+        const { error: updateError } = await supabase
+          .from('search_history')
+          .update({ created_at: now })
+          .eq('id', existingSearches[0].id);
+          
+        if (updateError) throw updateError;
+      } else {
+        // Insert new search record
+        const { error: insertError } = await supabase
+          .from('search_history')
+          .insert([
+            { 
+              user_id: user.id, 
+              search_term: searchTerm,
+              created_at: now
+            }
+          ]);
+          
+        if (insertError) throw insertError;
+      }
       
       // After saving, refresh the recent searches and today's count
       fetchRecentSearches();
@@ -299,24 +401,37 @@ function SearchPageContent() {
     }
   };
 
+  // Use this effect to mark when client-side rendering is active
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   if (!user) {
     return (
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-6">Find the Best Deals</h1>
         
         <div className="bg-gray-50 p-6 rounded-lg mb-8 shadow-sm">
-          <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-            <Input
-              type="text"
-              placeholder="Search for products..."
-              value={query}
-              onChange={handleInputChange}
-              className="flex-1"
-            />
-            <Button type="submit">
-              Search
-            </Button>
-          </form>
+          {/* Only render the form on the client to avoid hydration issues */}
+          {isClient ? (
+            <form onSubmit={handleSearch} className="flex gap-2 mb-6">
+              <Input
+                type="text"
+                placeholder="Search for products..."
+                value={query}
+                onChange={handleInputChange}
+                className="flex-1"
+              />
+              <Button type="submit">
+                Search
+              </Button>
+            </form>
+          ) : (
+            <div className="flex gap-2 mb-6">
+              <div className="flex-1 h-9 bg-gray-200 rounded-md animate-pulse"></div>
+              <div className="w-20 h-9 bg-gray-200 rounded-md animate-pulse"></div>
+            </div>
+          )}
           
           <div className="mb-6">
             <p className="text-sm text-gray-500 mb-2">Popular searches:</p>
@@ -436,28 +551,35 @@ function SearchPageContent() {
             <p className="text-sm text-gray-500">Searches Today</p>
             <p className="text-2xl font-bold mt-1">{todaySearchCount}</p>
           </div>
-          <div className="p-4 text-center">
-            <p className="text-sm text-gray-500">Favorite Stores</p>
-            <p className="text-2xl font-bold mt-1">3</p>
+          <div className="p-4 text-center cursor-pointer" onClick={() => router.push('/favorites')}>
+            <p className="text-sm text-gray-500">Favorite Products</p>
+            <p className="text-2xl font-bold mt-1">{favoriteProductsCount}</p>
           </div>
         </div>
       </div>
       
       {/* Mobile Search - only visible on small screens */}
       <div className="md:hidden mb-6">
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <Input
-            type="text"
-            placeholder="Search for products..."
-            value={query}
-            onChange={handleInputChange}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Search
-          </Button>
-        </form>
+        {isClient ? (
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <Input
+              type="text"
+              placeholder="Search for products..."
+              value={query}
+              onChange={handleInputChange}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Search
+            </Button>
+          </form>
+        ) : (
+          <div className="flex gap-2">
+            <div className="flex-1 h-9 bg-gray-200 rounded-md animate-pulse"></div>
+            <div className="w-20 h-9 bg-gray-200 rounded-md animate-pulse"></div>
+          </div>
+        )}
       </div>
       
       {/* Error message */}
@@ -487,14 +609,16 @@ function SearchPageContent() {
       {!loading && results.length > 0 && (
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            {/* Comment out or remove this heading if it's duplicated in the SearchResults component */}
-            {/* <h2 className="text-lg font-semibold">Results for "{query}"</h2> */}
             <h2 className="text-lg font-semibold">Search Results</h2>
             <Button variant="outline" size="sm" onClick={() => setResults([])}>
               Clear Results
             </Button>
           </div>
-          <SearchResults content={results} query={query} />
+          <SearchResults 
+            content={results} 
+            query={query} 
+            onToggleFavorite={toggleFavorite}
+          />
         </div>
       )}
       
@@ -523,15 +647,24 @@ function SearchPageContent() {
           <div className="space-y-2">
             {recentSearches.length > 0 ? (
               recentSearches.map((item, index) => {
-                // Calculate time ago
+                // Format the date and time properly
                 const searchTime = new Date(item.created_at);
-                const now = new Date();
-                const diffHours = Math.round((now - searchTime) / (1000 * 60 * 60));
-                const timeAgo = diffHours <= 0 
-                  ? 'Just now' 
-                  : diffHours === 1 
-                    ? '1 hour ago' 
-                    : `${diffHours} hours ago`;
+                
+                // Format the date
+                const formattedDate = searchTime.toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                });
+                
+                // Format the time
+                const formattedTime = searchTime.toLocaleTimeString(undefined, {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+                
+                // Combine date and time
+                const timeDisplay = `${formattedDate}, ${formattedTime}`;
                     
                 return (
                   <div 
@@ -545,7 +678,7 @@ function SearchPageContent() {
                       </div>
                       <span>{item.search_term}</span>
                     </div>
-                    <span className="text-xs text-gray-500">{timeAgo}</span>
+                    <span className="text-xs text-gray-500">{timeDisplay}</span>
                   </div>
                 );
               })
